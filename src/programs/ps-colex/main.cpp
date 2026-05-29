@@ -1,14 +1,14 @@
-#include <boost/format.hpp>
-#include <boost/program_options.hpp>
 #include <iostream>
+#include <map>
 #include <pokerstove/peval/Card.h>
 #include <pokerstove/peval/CardSet.h>
+#include <pokerstove/util/argparse.hpp>
 #include <pokerstove/util/combinations.h>
+#include <pokerstove/util/format.hpp>
+#include <set>
 #include <string>
-#include <vector>
 
 using namespace std;
-namespace po = boost::program_options;
 using namespace pokerstove;
 
 #if 0
@@ -34,34 +34,21 @@ int main(int argc, char** argv)
 {
     try
     {
-        // set up the program options, handle the help case, and extract the
-        // values
-        po::options_description desc(
+        ArgParser parser;
+        parser.set_description(
             "pscolex, a utility which prints all combinations\n"
-            "of poker hands, using canonical suits, or only ranks\n");
+            "of poker hands, using canonical suits, or only ranks");
+        parser.add_option("help", '?', false, {}, true);
+        parser.add_option("num-cards", 'n', true, "2");
+        parser.add_option("ranks", '\0', false, {}, true);
 
-        desc.add_options()
-            ("help,?",      "produce help message")
-            ("num-cards,n", po::value<size_t>()->default_value(2), "number of cards in hands")
-            ("ranks",       "print the set of rank values");
-
-        po::variables_map vm;
-        po::store(po::command_line_parser(argc, argv)
-                      .style(po::command_line_style::unix_style)
-                      .options(desc)
-                      .run(),
-                  vm);
-        po::notify(vm);
-
-        // check for help
-        if (vm.count("help") || argc == 1)
+        if (!parser.parse(argc, argv) || parser.flag("help") || argc == 1)
         {
-            cout << desc << endl;
+            parser.print_help(cout);
             return 1;
         }
 
-        // extract the options
-        size_t num_cards = vm["num-cards"].as<size_t>();
+        size_t num_cards = static_cast<size_t>(stoul(parser.get("num-cards")));
 
         set<CardSet> canonicalHands;
         map<string, size_t> rankHands;
@@ -70,23 +57,20 @@ int main(int argc, char** argv)
         {
             CardSet hand;
             for (size_t i = 0; i < num_cards; i++)
-            {
                 hand.insert(Card(cards[i]));
-            }
             canonicalHands.insert(hand.canonize());
             rankHands[hand.rankstr()] = hand.rankColex();
         } while (cards.next());
 
-        if (vm.count("ranks") > 0)
+        if (parser.flag("ranks"))
         {
             for (auto it = rankHands.begin(); it != rankHands.end(); it++)
-                cout << boost::format("%s: %d\n") % it->first % it->second;
+                cout << util::format("{}: {}\n", it->first, it->second);
         }
         else
         {
-            for (auto it = canonicalHands.begin(); it != canonicalHands.end();
-                 it++)
-                cout << boost::format("%s: %d\n") % it->str() % it->colex();
+            for (auto it = canonicalHands.begin(); it != canonicalHands.end(); it++)
+                cout << util::format("{}: {}\n", it->str(), it->colex());
         }
     }
     catch (std::exception& e)

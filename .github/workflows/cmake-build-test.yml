@@ -19,12 +19,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    # cmake should already be installed
-    # swig is used for building the python bindings
     - name: Install build tools
       run: |
         sudo apt-get -y update
-        sudo apt-get -y install libboost-all-dev swig pipx
+        sudo apt-get -y install swig pipx
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
@@ -49,4 +47,3 @@ jobs:
 
     - name: Test Wheel
       run: python src/lib/python/test-python
-

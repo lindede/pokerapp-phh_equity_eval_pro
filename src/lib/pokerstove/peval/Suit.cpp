@@ -4,7 +4,6 @@
  */
 #include "Suit.h"
 #include "Card.h"
-#include <boost/format.hpp>
 #include <iostream>
 #include <stdexcept>
 
@@ -110,7 +109,7 @@ string Suit::decodeSuitASCII_EXT(int card) const
             c = '?';
     }
 
-    string buf = (boost::format("%c") % c).str();  // boost::format may be overkill
+    string buf(1, c);
     return buf;
 }
 

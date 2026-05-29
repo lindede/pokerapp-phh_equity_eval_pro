@@ -1,9 +1,2 @@
-project(eval)
-
 add_executable(ps-eval main.cpp)
-
-target_link_libraries(ps-eval
-        peval
-        penum
-        ${Boost_LIBRARIES}
-)
+target_link_libraries(ps-eval PRIVATE pokerstove::penum pokerstove::peval pokerstove::util)

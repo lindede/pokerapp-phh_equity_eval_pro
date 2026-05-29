@@ -1,187 +1,170 @@
-PokerStove
-==========
+# pokerapp-phh_equity_eval
 
-Code available at: https://github.com/andrewprock/pokerstove
+A modernized fork of [PokerStove](https://github.com/andrewprock/pokerstove) — a fast C++ poker hand evaluation and **exact equity** enumeration library.
 
-PokerStove is a highly hand optimized C++ poker hand evaluation library.
+Upstream PokerStove is a highly optimized evaluator for multiple poker variants. This fork upgrades the core to **C++20**, removes the **Boost** runtime dependency, and keeps the original `peval` / `penum` architecture.
 
-The core libraries of pokerstove have been open sourced.  The project is
-currently in the process of reviewing and publishing the code.  As code is
-reviewed and code sanitized further commits will be added.
+## Features
 
-Please find the old installer in the win32 directory.  That installer should
-install a version of PokerStove which will not expire at any time.  You can also
-find the apk file for the Android version of the utility in the android folder.
+- **C++20** with zero third-party runtime dependencies for core libraries (`peval`, `penum`, `util`)
+- **14 poker variants** via `PokerHandEvaluator::alloc()` (Hold'em, Omaha, Stud, Razz, Draw, lowball, Badugi, …)
+- **Exact equity** via exhaustive enumeration — not Monte Carlo sampling
+- CLI tools: `ps-eval`, `ps-colex`, `ps-lut`
+- GoogleTest unit tests (build-time only)
 
 ## Libraries
 
-### peval
-
-This is a c++ poker hand evaluation library.  The main design goals of the library
-are generality, extensibility, and ease of use.  There are evaluators for fourteen
-variants of poker.  Additionally, there are various card manipulation and query tools built
-into the CardSet class.
+| Library | Purpose |
+|---------|---------|
+| **peval** | Hand evaluation — `CardSet`, rank/suit types, game-specific evaluators |
+| **penum** | Equity enumeration — `CardDistribution`, `ShowdownEnumerator` |
+| **util** | Header-only helpers — combinations, CLI parser, timing, string/format utils |
 
 ## Programs
 
-### ps-eval
+| Tool | Description |
+|------|-------------|
+| **ps-eval** | Calculate showdown equity for one or more players |
+| **ps-colex** | Print colexicographical indices for card combinations |
+| **ps-lut** | Generate / inspect evaluation lookup tables |
 
-A tool for poker hand evaluation.  It demonstrates how to use the peval library, and to create
-evaluators for the different variants of poker.
+Command syntax, hand formats, and limitations: **[USAGEA.md](USAGEA.md)**
 
-### ps-colex
+Design docs: [RD.md](RD.md) (requirements), [PD.md](PD.md) (architecture)
 
-A utility for viewing colexicographical index for sets of cards.
+## Quick start
+
+```bash
+cmake -DCMAKE_BUILD_TYPE=Release -S . -B build -G "MinGW Makefiles"   # Windows MinGW
+cmake --build build -j 4
+ctest --test-dir build
+```
+
+```bash
+# Hold'em — preflop equity (enumerates all 5-card runouts)
+./build/bin/ps-eval AcAs Kh4d
+
+# Hold'em — flop known
+./build/bin/ps-eval AcAs Kh4d --board 5c8s9h
+
+# Lowball 2-7 (no community cards)
+./build/bin/ps-eval --game k 7c5c4c3c2c
+```
+
+`ps-eval` prints elapsed time to **stderr** after each run:
+
+```text
+elapsed: 0.012 s
+```
+
+## Equity model
+
+### Exhaustive enumeration (not Monte Carlo)
+
+`ps-eval` calls `ShowdownEnumerator::calculateEquity()`, which:
+
+1. Iterates every hand combination in each player's `CardDistribution`
+2. Deals remaining cards from the deck via `PartitionEnumerator`
+3. Evaluates each complete showdown and accumulates win/tie shares
+
+Results are **exact** within the enumerated scenario space. There is no random sampling.
+
+### Hold'em and the board
+
+For `--game h` (default), `boardSize()` is **5**.
+
+| `--board` | Behavior |
+|-----------|----------|
+| omitted | Preflop — enumerates **all 5** community cards (standard preflop all-in equity) |
+| 3 cards | Enumerates remaining 2 cards (turn + river) |
+| 4 cards | Enumerates remaining 1 card (river) |
+| 5 cards | Fixed board — no further cards dealt |
+
+Hold'em does **not** support “0 community cards, compare hole cards only”. Games without a board (Stud, Draw, lowball, Badugi, …) use `boardSize() == 0`; pick the matching `--game` code.
+
+### Hand input (ps-eval)
+
+Supported:
+
+- Explicit cards: `AcAs`, `Kh4d`
+- Weighted combos: `"AcAs=0.5,KhKd=0.5"`
+- Random range: `.` (enumerates all opponent hands, not Monte Carlo)
+
+**Not** supported: range shorthand such as `22+`, `AKo`, `QQ+`. See [USAGEA.md](USAGEA.md).
 
 ## Building
 
-The pokerstove libraries come with build scripts for cmake.  This
-should allow you to build it on any platform with minimal
-tweaking.  This project has been successfully build under linux/g++,
-windows/vc2010 and OSX/XCode so far.
+### Requirements
 
-In order to build the libraries you'll need the following
-installed on your platform of choice:
-
-* boost, version 1.46 or higher
-* cmake, version 3.14 or higher
+- CMake ≥ 3.20
+- C++20 compiler (GCC ≥ 11, Clang ≥ 14, or MSVC 2022)
 
 ### Linux
 
-To install the dependencies with apt get:
+```bash
+cmake -DCMAKE_BUILD_TYPE=Release -S . -B build
+cmake --build build -j 4
+ctest --test-dir build
+```
 
-    apt-get install libboost-all-dev cmake
+### Windows (MSYS2 MinGW)
 
-To build under linux using cmake, create a build directory,
-invoke cmake on the programs directory, then build. The command
-below uses four threads, but you may set it according to your
-own system.
+Ensure `D:\msys64\ucrt64\bin` (or your MSYS2 path) is on `PATH`, then:
 
-    git clone https://github.com/andrewprock/pokerstove.git
-    cmake -DCMAKE_BUILD_TYPE=Release -S \. -B build
-    cmake --build build --target all test -j 4
+```powershell
+cmake -B build -DCMAKE_BUILD_TYPE=Release -G "MinGW Makefiles"
+cmake --build build -j 4
+```
 
-You should then be able to execute the simple command line
-example:
+The repo includes `.vscode/settings.json` and `tasks.json` configured for MinGW Makefiles + Release.
 
-    pokerstove/build $ ./bin/ps-eval
-    Allowed options:
-      -? [ --help ]          produce help message
-      -g [ --game ] arg (=h) game to use for evaluation
-      -b [ --board ] arg     community cards for he/o/o8
-      -h [ --hand ] arg      a hand for evaluation
-      -q [ --quiet ]         produce no output
+### Build types
 
-       For the --game option, one of the follwing games may be
-       specified.
-         h     hold'em
-         o     omaha/8
-         O     omaha high
-         r     razz
-         s     stud
-         e     stud/8
-         q     stud high/low no qualifier
-         d     draw high
-         l     lowball (A-5)
-         k     Kansas City lowball (2-7)
-         t     triple draw lowball (2-7)
-         T     triple draw lowball (A-5)
-         b     badugi
-         3     three-card poker
+`CMAKE_BUILD_TYPE` must be set at **configure** time (single-config generators):
 
-       examples:
-           ps-eval acas
-           ps-eval AcAs Kh4d --board 5c8s9h
-           ps-eval AcAs Kh4d --board 5c8s9h
-           ps-eval --game l 7c5c4c3c2c
-           ps-eval --game k 7c5c4c3c2c
-           ps-eval --game kansas-city-lowball 7c5c4c3c2c
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Debug    # debug
+cmake -B build -DCMAKE_BUILD_TYPE=Release  # optimized (recommended)
+```
 
+### CMake options
 
-### Windows
+| Option | Default | Description |
+|--------|---------|-------------|
+| `BUILD_TESTING` | ON | Build and register unit tests |
+| `BUILD_PYTHON` | OFF | Build SWIG Python bindings |
+| `BUILD_WHEEL` | OFF | scikit-build wheel mode |
 
-Getting boost to work under windows can be a bit of a challenge.
-One of the easier ways is to install precompiled librares.  There
-is a batch of them available at sourceforge. If you're working
-with Visual Studio 2010, you will probably need the 32 bit
-libraries.  [boost precomplied libraries]
-(http://sourceforge.net/projects/boost/files/boost-binaries/1.53.0/)
+## Python support (optional)
 
-Under windows, the cmake gui can be used to construct solution
-and project files for Visual Studio 2010.  To do this, browse
-source to locate the programs directory git/pokerstove/programs.
-Then create a build dir for the project.  At the bottom of the
-gui click Configure, then Generate.  You may have to edit the
-git/pokerstove/programs/CMakeLists.txt to point cmake to your
-installation of boost.
+Python bindings via SWIG are retained but optional. On Ubuntu:
 
-Once you've done that, you should be able to select
+```bash
+sudo apt install python3 swig
+cmake -DCMAKE_BUILD_TYPE=Release -S . -B build -DBUILD_PYTHON=ON
+cmake --build build -j 4
+```
 
-    Menu->Build->Build Solution
+Wheel build via `pipx run build` and `pyproject.toml` — see upstream workflow in `.github/workflows/cmake-build-test.yml`.
 
-to build the sample program.
+## Project layout
 
+```text
+src/lib/pokerstove/
+  peval/     # hand evaluation
+  penum/     # equity enumeration
+  util/      # header-only utilities
+src/programs/
+  ps-eval/ ps-colex/ ps-lut/
+```
 
-### OSX
+## Upstream & breaking changes
 
-In order to build under Max OSX, you'll need to install XCode,
-git, cmake, macports, and boost.  The first four can be installed
-in the conventional manner, with XCode coming form the App Store, cmake,
-git and macports downloaded from the web.  The macports package is a
-typical unix package management utility and is required to install boost.
-Once you've installed and selfupdate'd macports, you can install boost:
+- Based on [andrewprock/pokerstove](https://github.com/andrewprock/pokerstove) v1.2 lineage
+- **Removed:** Boost dependency (program_options, format, lexical_cast, …)
+- **Requires:** C++20 (`std::format`, `std::shared_ptr`, …)
+- Legacy installers: `win32/`, `android/` (not maintained in this fork)
 
-    sudo port install boost -no_static
+## License
 
-Or
-
-    brew install boost cmake
-
-From there you can run the cmake gui as in windows.  This will create
-an XCode project which should compile the sample utility. Alternatively,
-follow the command  line `cmake` instructions in the [Linux section](#linux).
-
-# Python support
-
-Python support is done via swig integration. This has only been developed
-and tested for Ubuntu at this point in time.
-
-In order for python libraries to work, you will need to install:
-
-    sudo apt install python3 swig
-
-If you would like to also build the Python library as well, append the
-directive when the first cmake invocation is run:
-
-    cmake -DCMAKE_BUILD_TYPE=Release -S \. -B build -DBUILD_PYTHON=ON
-    cmake --build build --target all test -j 16
-
-Once you have built the project with Python support there will be a
-python loader file and a shared object file. To test run the script
-from the build directory:
-
-    PYTHONPATH=build/python/pokerstove/ ./src/lib/python/test-python
-
-For regular use you'll want to export the PYTHONPATH variable to your
-shell:
-
-    export PYTHONPATH=~/git/pokerstove/build/python/pokerstove/
-
-## Python wheel package
-
-You will need to install pipx to build with scikit-build-core, using
-apt on Ubuntu and brew on MacOS.
-
-There is also a `pyproject.toml` file which can be used to create an
-installable wheel for the pythong package. The commands below can be
-used to build/install/verify the package.
-
-    git clean -fxd && pipx run build
-    python3 -m venv venv && . venv/bin/activate
-    pip install dist/pokerstove-*.whl
-    python src/lib/python/test-python
-    deactivate
-
-# Breaking changes
-
-Version 1.2 will migrate from boost::shared_ptr to std::shared_ptr, breaking API compatibility.
+See [LICENSE.txt](LICENSE.txt). Core library copyright remains with the original PokerStove authors.

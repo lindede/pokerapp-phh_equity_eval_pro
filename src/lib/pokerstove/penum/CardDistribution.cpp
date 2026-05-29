@@ -3,13 +3,12 @@
  */
 #include "CardDistribution.h"
 
-#include <boost/algorithm/string.hpp>
-#include <boost/format.hpp>
-#include <boost/lexical_cast.hpp>
 #include <iostream>
+#include <pokerstove/util/format.hpp>
 #include <vector>
 #include <pokerstove/peval/Card.h>
 #include <pokerstove/util/combinations.h>
+#include <pokerstove/util/strings.hpp>
 
 using namespace std;
 using namespace pokerstove;
@@ -51,7 +50,7 @@ string CardDistribution::str() const
     for (size_t i = 0; i < _handList.size(); i++) {
         const CardSet& hand = _handList[i];
         ret += (i > 0 ? "," : "")
-            + (boost::format("%s=%.3f") % hand.str() % weight(hand)).str();
+            + util::format("{}={:.3f}", hand.str(), weight(hand));
     }
     return ret;
 }
@@ -79,7 +78,7 @@ void CardDistribution::fill(const CardSet& cs, int n)
     vector<Card> cards = cs.cards();
     int setsize = static_cast<int>(cards.size());
     combinations hands(setsize, n);
-    int vsize = choose(setsize, n);
+    int vsize = static_cast<int>(choose(setsize, n));
     clear();
     _handList.reserve(vsize);
 
@@ -136,21 +135,25 @@ bool CardDistribution::parse(const std::string& input)
         return true;
     }
 
-    vector<string> hands;
-    boost::split(hands, input, boost::is_any_of(","));
+    const auto hand_parts = util::split(input, ',');
+    vector<string> hands(hand_parts.begin(), hand_parts.end());
     for (const string& h : hands) {
         // handle the weight
         double weight = 1.0;
-        if (boost::contains(h, "=")) {
+        if (util::contains(h, "=")) {
             // trap for the case where the input ends with "="
             string::size_type weightPos = h.rfind("=") + 1;
             if (weightPos == h.size())
                 return false;
-            weight = boost::lexical_cast<double>(h.substr(weightPos));
+            if (!util::parse_double(h.substr(weightPos), weight))
+                return false;
         }
 
         // handle the hand one card at a time.
-        string handstr = h.substr(0, h.rfind("="));
+        string handstr = h;
+        const auto eq_pos = h.rfind("=");
+        if (eq_pos != string::npos)
+            handstr = h.substr(0, eq_pos);
         if (handstr.size() % 2 != 0)
             return false;
         CardSet hand;

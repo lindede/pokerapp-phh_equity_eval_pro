@@ -3,6 +3,7 @@
  */
 #include "ShowdownEnumerator.h"
 
+#include <cassert>
 #include <string>
 #include <vector>
 

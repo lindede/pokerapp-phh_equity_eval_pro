@@ -6,21 +6,24 @@
 #define COMMON_ENUM_COMBINATIONS_H_
 
 #include <algorithm>
-#include <boost/lexical_cast.hpp>
-#include <boost/math/special_functions/binomial.hpp>
+#include <cstdint>
+#include <string>
 #include <pokerstove/util/lastbit.h>
 #include <pokerstove/util/utypes.h>
 
 namespace pokerstove
 {
 
-// simple wrapper around boost's implementatoin to allow 0c1, etc
-inline double choose(int n, int m)
+inline uint64_t choose(int n, int m)
 {
-    // 4c8 is zero, you can't select 8 things from 4 items
-    return (n < m)
-        ? 0
-        : static_cast<size_t>(boost::math::binomial_coefficient<double>(n, m));
+    if (m < 0 || m > n)
+        return 0;
+    if (m > n - m)
+        m = n - m;
+    uint64_t result = 1;
+    for (int i = 0; i < m; ++i)
+        result = result * static_cast<uint64_t>(n - i) / static_cast<uint64_t>(i + 1);
+    return result;
 }
 
 /**
@@ -80,7 +83,7 @@ public:
     {
         std::string ret;
         for (size_t i = 0; i < size(); i++)
-            ret += boost::lexical_cast<std::string>((*this)[i]) + " ";
+            ret += std::to_string((*this)[i]) + " ";
         return ret;
     }
 

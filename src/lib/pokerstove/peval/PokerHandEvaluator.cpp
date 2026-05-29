@@ -6,7 +6,6 @@
 #include <iostream>
 
 using namespace std;
-using namespace boost;
 using namespace pokerstove;
 
 PokerHandEvaluator::PokerHandEvaluator()

@@ -10,9 +10,6 @@
 #include "Suit.h"
 #include <algorithm>
 #include <array>
-#include <boost/algorithm/string.hpp>
-#include <boost/format.hpp>
-#include <boost/lexical_cast.hpp>
 #include <cassert>
 #include <cstdio>
 #include <iostream>
@@ -22,8 +19,6 @@
 #include <vector>
 
 using namespace std;
-using namespace boost;
-using namespace pokerstove;
 using namespace pokerstove;
 
 // some suit mask macros

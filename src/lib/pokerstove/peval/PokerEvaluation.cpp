@@ -5,10 +5,11 @@
 #include "PokerEvaluation.h"
 #include "Card.h"
 #include "PokerEvaluationTables.h"
-#include <boost/format.hpp>
 #include <iostream>
+#include <pokerstove/util/format.hpp>
 #include <pokerstove/util/lastbit.h>
 #include <stdexcept>
+#include <vector>
 
 using namespace std;
 using namespace pokerstove;
@@ -483,7 +484,7 @@ string PokerEvaluation::toStringCannon() const
     }
 
     string ranks = topr + botr + kick;
-    ret = (boost::format("%s %-5s") % hand % ranks).str();
+    ret = util::format("{} {:5}", hand, ranks);
 
     return ret;
 }
@@ -597,7 +598,7 @@ string PokerEvaluation::toStringPretty() const
     }
 
     string ranks = topr + botr + kick;
-    ret = (boost::format("%s%-5s") % hand % ranks).str();
+    ret = util::format("{}{:5}", hand, ranks);
 
     return ret;
 }
@@ -626,7 +627,7 @@ void PokerEvaluation::generateLowballLookupA5()
             if (nbits == 5)
                 break;
         }
-        cout << boost::format("    %6d, // %s\n") % lowbits % toBitString(lowbits);
+        cout << util::format("    {:6d}, // {}\n", lowbits, toBitString(lowbits));
     }
     cout << "};\n";
 }
@@ -647,7 +648,7 @@ void PokerEvaluation::generateBottomRankMask()
                 break;
             }
         }
-        cout << boost::format("    %6d, // %s\n") % lowbits % toBitString(lowbits);
+        cout << util::format("    {:6d}, // {}\n", lowbits, toBitString(lowbits));
     }
     cout << "};\n";
 }

@@ -15,23 +15,20 @@ TEST(Combinations, holdem)
     EXPECT_EQ(count, 1326);
 }
 
-TEST(Combinations, time_boost)
+TEST(Combinations, choose_values)
 {
-    for (int i=0; i<6000; i++) {
-        for (int k=0; k<10; k++) {
-            for (int n=k; n<10; n++) {
-                (void)static_cast<size_t>(boost::math::binomial_coefficient<double>(n, k));
-            }
-        }
-    }
+    EXPECT_EQ(choose(52, 2), 1326u);
+    EXPECT_EQ(choose(4, 8), 0u);
+    EXPECT_EQ(choose(10, 0), 1u);
+    EXPECT_EQ(choose(10, 10), 1u);
 }
 
-TEST(Combinations, time_clamped_boost)
+TEST(Combinations, time_choose)
 {
-    for (int i=0; i<6000; i++) {
-        for (int k=0; k<10; k++) {
-            for (int n=k; n<10; n++) {
-                choose(n, k);
+    for (int i = 0; i < 6000; i++) {
+        for (int k = 0; k < 10; k++) {
+            for (int n = k; n < 10; n++) {
+                (void)choose(n, k);
             }
         }
     }

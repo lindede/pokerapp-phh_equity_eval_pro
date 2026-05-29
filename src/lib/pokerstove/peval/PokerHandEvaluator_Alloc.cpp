@@ -3,7 +3,7 @@
  * $Id: PokerHandEvaluator_Alloc.cpp 2649 2012-06-30 04:53:24Z prock $
  */
 #include <stdexcept>
-#include <boost/algorithm/string.hpp>
+#include <pokerstove/util/strings.hpp>
 #include "HoldemHandEvaluator.h"
 #include "StudHandEvaluator.h"
 #include "RazzHandEvaluator.h"
@@ -19,13 +19,12 @@
 #include "UniversalHandEvaluator.h"
 
 using namespace std;
-using namespace boost;
 using namespace pokerstove;
 
 std::shared_ptr<PokerHandEvaluator> PokerHandEvaluator::alloc (const string & input)
 {
   string strid = input;
-  boost::algorithm::to_lower(strid); // modifies str
+  util::to_lower_inplace(strid);
   std::shared_ptr<PokerHandEvaluator> ret = nullptr;
   switch (strid[0])
     {
